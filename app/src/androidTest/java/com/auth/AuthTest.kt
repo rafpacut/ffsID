@@ -29,6 +29,9 @@ class AuthTest {
 
         verifier.fetchCert();
         verifier.sendChallenge();
+
+        prover.sendX();
+        verifier.getX();
         verifier.calcY();
 
         prover.getChallenge();
