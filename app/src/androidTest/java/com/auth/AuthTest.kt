@@ -16,7 +16,7 @@ import org.junit.Assert.*
 @RunWith(AndroidJUnit4::class)
 class AuthTest {
     @Test
-    fun authTest() {
+    fun successfulAuthTest() {
         val prover = new Prover();
         val verifier = new Verifier();
 
