@@ -19,7 +19,6 @@ class  VerifierUT{
         val bin = verifier.convertToBinary(bytes)
 
         val correct = listOf(1, 1, 0, 1, 1, 1, 0, 1)
-        println(correct)
         assertEquals(correct, bin)
     }
 }

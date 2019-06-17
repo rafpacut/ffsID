@@ -83,6 +83,18 @@ class AuthTest {
         assertEquals("Public key tx failed.", prover.publicKey, verifier.proverPublicKey)
     }
 
+    @Test
+    fun authTest()
+    {
+       setUp()
+
+        verifier.receivedX = prover.genX()
+        prover.receivedChallenge = verifier.genChallenge()
+        verifier.proverPublicKey = prover.retrievePublicKey()
+        verifier.receivedY = prover.calcY()
+        assertTrue(verifier.verify())
+    }
+
     //@Test
     //fun successfulAuthTest() {
         ////if N can be const between protocols, then i can re-use v-s and keep them under prover's name in an external server.

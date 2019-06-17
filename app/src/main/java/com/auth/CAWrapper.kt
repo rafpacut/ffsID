@@ -1,7 +1,7 @@
 package com.auth
 
 class CAWrapper {
-    fun add(id : String, publicKey : List<Int>)
+    fun register(id : String, publicKey : List<Int>)
     {
         certMap.put(id, Certificate(publicKey))
     }

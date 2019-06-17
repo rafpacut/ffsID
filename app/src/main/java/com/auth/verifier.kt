@@ -1,9 +1,14 @@
 import java.security.SecureRandom
 import BTConnectionWrapper
 import com.auth.CAWrapper
+import com.auth.fastPowerMod
 
 class Verifier(val secParam : Int)
 {
+    val p = 1009
+    val q = 1019
+    val N = p*q
+
     fun fetchIntroduction(btCon : BTConnectionWrapper)
     {
         receivedIntroduction = btCon.introduction
@@ -26,7 +31,13 @@ class Verifier(val secParam : Int)
         var bytes = ByteArray(secParam)
         prng.nextBytes(bytes)
 
-        return convertToBinary(bytes)
+        challenge = convertToBinary(bytes)
+        return challenge
+    }
+
+    fun verify() : Boolean
+    {
+        return fastPowerMod(receivedY, 2, N) == calcY()
     }
 
     fun convertToBinary(bytes : ByteArray) : List<Int>
@@ -55,7 +66,15 @@ class Verifier(val secParam : Int)
         return binary
     }
 
+    private fun calcY() : Int
+    {
+        return receivedX*(proverPublicKey zip challenge).fold(1) { acc : Int, (s,c): Pair<Int, Int> -> acc*fastPowerMod(s,c,N)}
+    }
+
+
     var receivedX : Int = 0
+    var receivedY : Int = 0
     lateinit var receivedIntroduction : String
     lateinit var proverPublicKey : List<Int>
+    lateinit var challenge : List<Int>
 }

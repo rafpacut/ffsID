@@ -1,6 +1,7 @@
 import java.security.SecureRandom
 import BTConnectionWrapper
 import com.auth.CAWrapper
+import com.auth.fastPowerMod
 import java.nio.ByteBuffer
 
 
@@ -9,6 +10,7 @@ class Prover(val secParam: Int)
     val p = 1009
     val q = 1019
     val N = p*q
+    var r = 0
 
     fun getIntroduction() : String
     {
@@ -17,7 +19,8 @@ class Prover(val secParam: Int)
 
     fun genX() : Int
     {
-        return genRandomBytes()
+        r = genRandomBytes()
+        return fastPowerMod(r, 2, N)
     }
 
     fun fetchChallenge(btCon: BTConnectionWrapper)
@@ -25,10 +28,10 @@ class Prover(val secParam: Int)
         receivedChallenge = btCon.challenge;
     }
 
-    //fun genY()
-    //{
-
-    //}
+    fun calcY() : Int
+    {
+        return r*(secretKey zip receivedChallenge).fold(1) { acc : Int, (s,c): Pair<Int, Int> -> acc*fastPowerMod(s,c,N)}
+    }
 
     //fun fetchAuthStatus()
     //{
