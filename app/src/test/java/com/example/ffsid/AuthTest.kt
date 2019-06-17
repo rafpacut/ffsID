@@ -7,6 +7,7 @@ import org.junit.Assert.*
 import BTConnectionWrapper
 import Prover
 import Verifier
+import com.auth.CAWrapper
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -19,6 +20,7 @@ class AuthTest {
     lateinit var prover : Prover
     lateinit var verifier : Verifier
     lateinit var btCon : BTConnectionWrapper
+    lateinit var caHandle : CAWrapper
 
  //   @BeforeTest
     fun setUp()
@@ -27,6 +29,8 @@ class AuthTest {
         prover = Prover(secParam)
         verifier = Verifier(secParam)
         btCon = BTConnectionWrapper()
+        caHandle = CAWrapper()
+
     }
 
     @Test
@@ -54,7 +58,7 @@ class AuthTest {
     }
 
     @Test
-    fun ChallengeTxTest()
+    fun challengeTxTest()
     {
         setUp()
 
@@ -63,6 +67,20 @@ class AuthTest {
 
         prover.fetchChallenge(btCon);
         assertEquals("Challenge transfer did not succeed.", challenge, prover.receivedChallenge);
+    }
+
+    @Test
+    fun publicKeyTx()
+    {
+        setUp()
+
+        val (id, pk) = prover.getRegistrationInfo()
+        caHandle.add(id, pk)
+
+        verifier.receivedIntroduction = prover.getIntroduction()
+
+        verifier.fetchCert(caHandle)
+        assertEquals("Public key tx failed.", prover.publicKey, verifier.proverPublicKey)
     }
 
     //@Test
