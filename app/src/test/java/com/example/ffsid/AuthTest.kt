@@ -75,7 +75,7 @@ class AuthTest {
         setUp()
 
         val (id, pk) = prover.getRegistrationInfo()
-        caHandle.add(id, pk)
+        caHandle.register(id, pk)
 
         verifier.receivedIntroduction = prover.getIntroduction()
 
