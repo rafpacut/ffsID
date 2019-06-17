@@ -3,12 +3,6 @@ package com.example.ffsid
 import org.junit.Test
 
 import org.junit.Assert.*
-//import android.support.test.runner.AndroidJUnit4
-//
-//import org.junit.Test
-//import org.junit.runner.RunWith
-//
-//import org.junit.Assert.*
 
 import BTConnectionWrapper
 import Prover
@@ -38,10 +32,7 @@ class AuthTest {
     @Test
     fun introductionTxTest()
     {
-        val secParam = 5
-        prover = Prover(secParam)
-        verifier = Verifier(secParam)
-        btCon = BTConnectionWrapper()
+        setUp()
 
         val intro = prover.getIntroduction();
         btCon.send(intro);
@@ -53,10 +44,7 @@ class AuthTest {
     @Test
     fun xTxTest()
     {
-        val secParam = 5
-        prover = Prover(secParam)
-        verifier = Verifier(secParam)
-        btCon = BTConnectionWrapper()
+        setUp()
 
         val x = prover.genX();
         btCon.send(x);
@@ -68,10 +56,7 @@ class AuthTest {
     @Test
     fun ChallengeTxTest()
     {
-        val secParam = 5
-        prover = Prover(secParam)
-        verifier = Verifier(secParam)
-        btCon = BTConnectionWrapper()
+        setUp()
 
         val challenge = verifier.genChallenge();
         btCon.send(challenge);
