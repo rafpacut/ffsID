@@ -95,39 +95,33 @@ class AuthTest {
         assertTrue(verifier.verify())
     }
 
-    //@Test
-    //fun successfulAuthTest() {
+    @Test
+    fun successfulAuthTest() {
         ////if N can be const between protocols, then i can re-use v-s and keep them under prover's name in an external server.
         ////I then verify prover's identity. if they cant, I have to come up with different N and only verify that prover knows those numbers.
         ////I cant tie them to identity.
 
-        //val intro = prover.getIntroduction();
-        //btCon.send(intro);
+        setUp()
 
-        //verifier.fetchIntroduction(btCon);
-        //verifier.fetchCert();
+        val intro = prover.getIntroduction();
+        btCon.send(intro);
+        verifier.fetchIntroduction(btCon);
 
-        //val challenge = verifier.genChallenge();
-        //btCon.send(challenge);
+        val challenge = verifier.genChallenge();
+        btCon.send(challenge);
+        prover.fetchChallenge(btCon);
 
-        //val X = prover.genX();
-        //btCon.send(X);
+        val (id, pk) = prover.getRegistrationInfo()
+        caHandle.register(id, pk)
+        verifier.fetchCert(caHandle)
 
-        //verifier.fetchX(btCon);
-        //verifier.calcY();
+        val x = prover.genX();
+        btCon.send(x);
+        verifier.fetchX(btCon)
 
-        //prover.getChallenge(btCon);
-        //val yp = prover.genY();
-        //btCon.send(yp);
-
-        //verifier.fetchY(btCon);
-        //verifier.verify();
-        //assertTrue(verifier.isAuthSuccessfull(), "Verifier did not auth the prover.");
-
-        //val authStatus = verifier.getAuthStatus();
-        //btCon.send(authStatus);
-
-        //prover.fetchAuthStatus(btCon);
-        //assertTrue(prover.isAuthSuccessfull(), "Prover did not authenticate.")
-    //}
+        val py = prover.calcY()
+        btCon.sendY(py)
+        verifier.fetchY(btCon)
+        assertTrue(verifier.verify())
+    }
 }
