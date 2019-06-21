@@ -5,6 +5,11 @@ class BTConnectionWrapper
         X = value;
     }
 
+    fun sendY(value : Int)
+    {
+        Y = value
+    }
+
     fun send(value : String)
     {
         introduction = value;
@@ -16,6 +21,7 @@ class BTConnectionWrapper
     }
 
     var X : Int = 0
+    var Y : Int = 0
     lateinit var challenge : List<Int>
     lateinit var introduction : String
 }

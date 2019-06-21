@@ -25,6 +25,11 @@ class Verifier(val secParam : Int)
         receivedX = btCon.X
     }
 
+    fun fetchY(btCon : BTConnectionWrapper)
+    {
+        receivedY = btCon.Y
+    }
+
     fun genChallenge() : List<Int>
     {
         val prng = SecureRandom()
