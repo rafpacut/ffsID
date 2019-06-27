@@ -1,24 +1,34 @@
 package com.auth
 
+import java.security.*
+
 class CAWrapper {
-    fun register(id : String, publicKey : List<Int>)
+    init
     {
-        certMap.put(id, Certificate(publicKey))
+        genKeys()
     }
 
-    fun get(id: String) : Certificate
+    fun sign(messageHash: ByteArray) : ByteArray
     {
-        try {
-            return certMap.getValue(id)
-        }
-        catch(e: Exception)
-        {
-            println("${id} has no certificate.")
-            throw e;
-        }
+        val sigGen = Signature.getInstance("SHA256withRSA")
+        sigGen.initSign(privateKey)
+        sigGen.update(messageHash)
+        return sigGen.sign()
     }
 
-    private var certMap : MutableMap<String, Certificate> = mutableMapOf()
+    private fun genKeys()
+    {
+        val kp: KeyPair
+        val kpg: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
+
+        kpg.initialize(2048)
+        kp = kpg.genKeyPair()
+
+        publicKey = kp.public
+        privateKey = kp.private
+    }
+
+    lateinit var publicKey : PublicKey
+    lateinit var privateKey : PrivateKey
+
 }
-
-class Certificate(val publicKey : List<Int> ) {} //yes, it's a type alias for now.

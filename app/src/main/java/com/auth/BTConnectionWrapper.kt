@@ -10,9 +10,10 @@ class BTConnectionWrapper
         Y = value
     }
 
-    fun send(value : String)
+    fun send(intro : Introduction, signature : ByteArray)
     {
-        introduction = value;
+        introduction = intro
+        introductionSignature = signature
     }
 
     fun send(value : List<Int>)
@@ -23,5 +24,6 @@ class BTConnectionWrapper
     var X : Int = 0
     var Y : Int = 0
     lateinit var challenge : List<Int>
-    lateinit var introduction : String
+    lateinit var introduction : Introduction
+    lateinit var introductionSignature : ByteArray
 }

@@ -30,7 +30,6 @@ class AuthTest {
         verifier = Verifier(secParam)
         btCon = BTConnectionWrapper()
         caHandle = CAWrapper()
-
     }
 
     @Test
@@ -38,10 +37,10 @@ class AuthTest {
     {
         setUp()
 
-        val intro = prover.getIntroduction();
-        btCon.send(intro);
+        val (intro, signature) = prover.getIntroduction()
+        btCon.send(intro, signature)
 
-        verifier.fetchIntroduction(btCon);
+        verifier.fetchIntroduction(btCon)
         assertEquals("Introduction transfer did not succeed.", intro, verifier.receivedIntroduction);
     }
 
@@ -70,58 +69,54 @@ class AuthTest {
     }
 
     @Test
-    fun publicKeyTx()
+    fun introductionAuthTest()
     {
         setUp()
 
-        val (id, pk) = prover.getRegistrationInfo()
-        caHandle.register(id, pk)
-
-        verifier.receivedIntroduction = prover.getIntroduction()
-
-        verifier.fetchCert(caHandle)
-        assertEquals("Public key tx failed.", prover.publicKey, verifier.proverPublicKey)
+        val (introduction, signature) = prover.getIntroduction()
+        assertTrue(verifier.verifyIntroduction(introduction.getHash(), signature))
     }
 
     @Test
     fun authTest()
     {
-       setUp()
+        setUp()
 
         verifier.receivedX = prover.genX()
         prover.receivedChallenge = verifier.genChallenge()
-        verifier.proverPublicKey = prover.retrievePublicKey()
+        verifier.proverPublicKey = prover.publicKey
         verifier.receivedY = prover.calcY()
-        assertTrue(verifier.verify())
+
+        val pkTest =  List(5) { i -> prover.secretKey[i] * prover.secretKey[i] % prover.N}
+        assertEquals(pkTest, prover.publicKey)
+        assertEquals(verifier.proverPublicKey, prover.publicKey)
+        assertTrue("main assertion", verifier.verify())
     }
 
     @Test
     fun successfulAuthTest() {
-        ////if N can be const between protocols, then i can re-use v-s and keep them under prover's name in an external server.
-        ////I then verify prover's identity. if they cant, I have to come up with different N and only verify that prover knows those numbers.
-        ////I cant tie them to identity.
-
         setUp()
 
-        val intro = prover.getIntroduction();
-        btCon.send(intro);
-        verifier.fetchIntroduction(btCon);
+ //       val introduction = prover.getIntroduction();
+ //       val signedIntroduction = prover.signedIntroduction
+ //       btCon.send(introduction, signedIntroduction);
+ //       verifier.fetchIntroduction(btCon);
 
-        val challenge = verifier.genChallenge();
-        btCon.send(challenge);
-        prover.fetchChallenge(btCon);
+ //       val challenge = verifier.genChallenge();
+ //       btCon.send(challenge);
+ //       prover.fetchChallenge(btCon);
 
-        val (id, pk) = prover.getRegistrationInfo()
-        caHandle.register(id, pk)
-        verifier.fetchCert(caHandle)
+ //       val (id, pk) = prover.getRegistrationInfo()
+ //       caHandle.register(id, pk)
+ //       verifier.fetchCert(caHandle)
 
-        val x = prover.genX();
-        btCon.send(x);
-        verifier.fetchX(btCon)
+ //       val x = prover.genX();
+ //       btCon.send(x);
+ //       verifier.fetchX(btCon)
 
-        val py = prover.calcY()
-        btCon.sendY(py)
-        verifier.fetchY(btCon)
-        assertTrue(verifier.verify())
+ //       val py = prover.calcY()
+ //       btCon.sendY(py)
+ //       verifier.fetchY(btCon)
+ //       assertTrue(verifier.verify())
     }
 }
