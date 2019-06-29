@@ -1,6 +1,9 @@
 package com.auth
 
 import kotlin.math.abs
+import java.nio.ByteBuffer
+import java.nio.LongBuffer
+
 
 fun fastPower(b : Long, e : Int) : Long
 {
@@ -29,45 +32,6 @@ fun fastPowerMod(b : Long, e: Int, m : Long) : Long
     return res
 }
 
-//fun chunkInt(intVal : Int) : List<Int>
-//{
-//    //what about negative numbers?
-//    val offsets = List(4, {j -> fastPower(2,4*j)})
-//    val maxByteVal = 127
-//    var x : MutableList<Int> = mutableListOf()
-//
-//    //gosh, damn, how to do it functionally?
-//    for(offset in offsets)
-//    {
-//        val remainder = intVal.rem(maxByteVal * offset)
-//        if(remainder >= intVal)
-//        {
-//            x.add(0)
-//        }
-//        else {
-//            x.add(remainder)
-//        }
-//    }
-//    return x.toList()
-//    //return List(4, {j -> intVal.rem(maxByteVal * offsets[j]) }).map {i -> }
-//}
-//
-//fun bigIntListToBytes(ints : List<Int>) : ByteArray
-//{
-//    val chunks = ints.flatMap { i -> chunkInt(i) }
-//    return chunks.map({ i-> i.toByte() }).toByteArray()
-//}
-//
-//fun getIntAt(bytes: ByteArray): Int
-//{
-//   return bytes.foldIndexed(0) { j, acc, b -> acc + b.toInt()* fastPower(2, j*4) }
-//}
-//
-//fun byteArrayToBigInt(bytes : ByteArray): List<Int>
-//{
-//    return List(bytes.size/8, { i -> getIntAt(bytes.sliceArray(i..i+8))})
-//}
-//
 fun convertToBinary(bytes : ByteArray) : List<Int>
 {
     var binary = mutableListOf<Int>()
@@ -93,4 +57,21 @@ fun convertToBinary(bytes : ByteArray) : List<Int>
     }
     return binary
 }
+
+fun longsToBytes(x : List<Long>) : ByteArray
+{
+    var buffer = ByteBuffer.allocate(x.size*java.lang.Long.BYTES)
+    for(l in x)
+    {
+        buffer = buffer.putLong(l)
+    }
+    return buffer.array()
+}
+
+fun bytesToLongs(x : ByteArray) : List<Long>
+{
+   var buffer = ByteBuffer.wrap(x)
+   return List<Long>(x.size/8, {i -> buffer.getLong()})
+}
+
 

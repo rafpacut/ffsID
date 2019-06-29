@@ -65,7 +65,7 @@ class Prover(val secParam : Int)
         if(! ::secretKey.isInitialized)
         {
             val secureStorage = SecureStorage()
-            val (sk, pk) = secureStorage.retrieveKeys("prover")
+            val (sk, pk) = secureStorage.retrieveKeys()
             secretKey = sk
             publicKey = pk
         }

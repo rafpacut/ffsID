@@ -94,26 +94,21 @@ class AuthTest {
     fun successfulAuthTest() {
         setUp()
 
- //       val introduction = prover.getIntroduction();
- //       val signedIntroduction = prover.signedIntroduction
- //       btCon.send(introduction, signedIntroduction);
- //       verifier.fetchIntroduction(btCon);
+        val (introduction, signature) = prover.getIntroduction();
+        btCon.send(introduction, signature);
+        verifier.fetchIntroduction(btCon);
 
- //       val challenge = verifier.genChallenge();
- //       btCon.send(challenge);
- //       prover.fetchChallenge(btCon);
+        val challenge = verifier.genChallenge();
+        btCon.send(challenge);
+        prover.fetchChallenge(btCon);
 
- //       val (id, pk) = prover.getRegistrationInfo()
- //       caHandle.register(id, pk)
- //       verifier.fetchCert(caHandle)
+        val x = prover.genX();
+        btCon.send(x);
+        verifier.fetchX(btCon)
 
- //       val x = prover.genX();
- //       btCon.send(x);
- //       verifier.fetchX(btCon)
-
- //       val py = prover.calcY()
- //       btCon.sendY(py)
- //       verifier.fetchY(btCon)
- //       assertTrue(verifier.verify())
+        val py = prover.calcY()
+        btCon.sendY(py)
+        verifier.fetchY(btCon)
+        assertTrue(verifier.verify())
     }
 }
