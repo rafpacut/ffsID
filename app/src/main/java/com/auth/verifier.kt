@@ -1,8 +1,5 @@
 import BTConnectionWrapper
-import com.auth.CAWrapper
-import com.auth.convertToBinary
-import com.auth.fastPowerMod
-import com.auth.positiveMod
+import com.auth.*
 import java.io.File
 import java.lang.Exception
 import java.security.*
@@ -14,9 +11,9 @@ class Verifier(val secParam : Int)
         initCAPublicKey()
     }
 
-    private val p = 1009
-    private val q = 1019
-    private val N = p*q
+    private val p : Long = 1009
+    private val q : Long = 1019
+    val N : Long = p*q
 
     fun fetchIntroduction(btCon : BTConnectionWrapper)
     {
@@ -41,19 +38,16 @@ class Verifier(val secParam : Int)
 
     fun genChallenge() : List<Int>
     {
-        //val prng = SecureRandom()
-        //var bytes = ByteArray(secParam)
-        //prng.nextBytes(bytes)
+        val prng = SecureRandom()
+        var bytes = ByteArray(secParam)
+        prng.nextBytes(bytes)
 
-        //challenge = convertToBinary(bytes)
-        challenge = listOf(1, 1, 1, 1, 1)
+        challenge = convertToBinary(bytes)
         return challenge
     }
 
     fun verify() : Boolean
     {
-        val tmp = calcY()
-        val tmp2 = fastPowerMod(receivedY, 2, N)
         return fastPowerMod(receivedY, 2, N) == calcY()
     }
 
@@ -65,19 +59,15 @@ class Verifier(val secParam : Int)
         return sigGen.verify(signedIntro)
     }
 
-    private fun calcY() : Int
+    private fun calcY() : Long
     {
-        var res = receivedX
-        for((pkEl, c) in (proverPublicKey zip challenge))
-        {
-           res = positiveMod(res*fastPowerMod(pkEl, c, N), N)
-        }
-
-        val fRes = positiveMod(receivedX*(proverPublicKey zip challenge).fold(1) { acc : Int, (s,c): Pair<Int, Int> -> positiveMod(acc*fastPowerMod(s,c,N),N)}, N)
-        return res
+        return positiveMod(receivedX*
+                (proverPublicKey zip challenge).fold(1) {
+                 acc : Long, (s,c): Pair<Long, Int> -> positiveMod(acc*fastPower(s,c), N)
+                }, N)
     }
 
-    fun initCAPublicKey()
+    private fun initCAPublicKey()
     {
         try {
             val encodedKey = File("/home/rafal/college/Crypto/ffsID/CAPublicKey.key").readBytes()
@@ -93,10 +83,10 @@ class Verifier(val secParam : Int)
     }
 
 
-    var receivedX : Int = 0
-    var receivedY : Int = 0
+    var receivedX : Long = 0
+    var receivedY : Long = 0
     lateinit var receivedIntroduction : Introduction
-    lateinit var proverPublicKey : List<Int>
+    lateinit var proverPublicKey : List<Long>
     lateinit var challenge : List<Int>
     lateinit var caPublicKey : PublicKey
 }

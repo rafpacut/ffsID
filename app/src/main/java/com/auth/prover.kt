@@ -4,8 +4,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.spec.SecretKeySpec
 import BTConnectionWrapper
 import android.content.Context
-import com.auth.CAWrapper
-import com.auth.fastPowerMod
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -14,12 +12,11 @@ import javax.crypto.SecretKey
 import android.R.attr.password
 import java.io.FileInputStream
 import android.R.attr.password
-import com.auth.SecureStorage
-import com.auth.positiveMod
+import com.auth.*
 import java.security.MessageDigest
 import javax.security.cert.Certificate
 
-data class Introduction(val name : String, val publicKey : List<Int>)
+data class Introduction(val name : String, val publicKey : List<Long>)
 {
     fun getHash() : ByteArray
     {
@@ -34,20 +31,19 @@ class Prover(val secParam : Int)
         loadKeys()
     }
 
-    private val p = 1009
-    private val q = 1019
-    val N = p*q
-    private var r = 0
+    private val p : Long= 1009
+    private val q : Long= 1019
+    val N : Long = p*q
+    private var r : Long = 0
 
     fun getIntroduction() : Pair<Introduction,ByteArray>
     {
        return Pair(Introduction("Peggy", publicKey), signedIntroduction)
     }
 
-    fun genX() : Int
+    fun genX() : Long
     {
-        //r = genRandomBytes()
-        r = 1
+        r = positiveMod(genRandomBytes(), N)
         return fastPowerMod(r, 2, N)
     }
 
@@ -56,9 +52,12 @@ class Prover(val secParam : Int)
         receivedChallenge = btCon.challenge;
     }
 
-    fun calcY() : Int
+    fun calcY() : Long
     {
-        return positiveMod(return r*(secretKey zip receivedChallenge).fold(1) { acc : Int, (s,c): Pair<Int, Int> -> positiveMod(acc*fastPowerMod(s,c,N),N)}, N)
+        return positiveMod(r*
+            (secretKey zip receivedChallenge).fold(1) {
+                acc : Long, (s,c): Pair<Long, Int> -> positiveMod(acc*fastPower(s,c), N)
+        }, N)
     }
 
     private fun loadKeys()
@@ -72,20 +71,20 @@ class Prover(val secParam : Int)
         }
     }
 
-    private fun genRandomBytes() : Int
+    private fun genRandomBytes() : Long
     {
-        var bytes = ByteArray(secParam)
+        var bytes = ByteArray(secParam+5)
         prng.nextBytes(bytes)
 
-        return ByteBuffer.wrap(bytes).getInt()
+        return ByteBuffer.wrap(bytes).getLong()
     }
 
     private val prng = SecureRandom()
 
 
     lateinit var receivedChallenge : List<Int>
-    lateinit var publicKey : List<Int>
-    lateinit var secretKey : List<Int>
+    lateinit var publicKey : List<Long>
+    lateinit var secretKey : List<Long>
     private val basePath = "/home/rafal/college/Crypto/ffsID"
     var signedIntroduction = File(basePath+"/introduction.sign").readBytes()
 }

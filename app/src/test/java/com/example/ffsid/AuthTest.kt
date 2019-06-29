@@ -87,10 +87,7 @@ class AuthTest {
         verifier.proverPublicKey = prover.publicKey
         verifier.receivedY = prover.calcY()
 
-        val pkTest =  List(5) { i -> prover.secretKey[i] * prover.secretKey[i] % prover.N}
-        assertEquals(pkTest, prover.publicKey)
-        assertEquals(verifier.proverPublicKey, prover.publicKey)
-        assertTrue("main assertion", verifier.verify())
+        assertTrue(verifier.verify())
     }
 
     @Test
