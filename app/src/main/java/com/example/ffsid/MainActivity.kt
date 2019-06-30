@@ -108,10 +108,6 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     protocolState = Constants.PROVER_GEN_X
                 }
 
-//                Constants.PROVER_REG_INFO -> {
-//                    protocolState = Constants.PROVER_GEN_X
-//                }
-
                 Constants.PROVER_GEN_X -> {
                     //gen x and send to verifier
                     mActivity.sendMessage("PROVER_X")
@@ -126,6 +122,7 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
 
                 Constants.PROVER_AWAIT_VERIFICATION -> {
                     //get the verification results
+                    mActivity.sendMessage("VERIFY")
                     protocolState = Constants.PROTOCOL_END
                 }
             }
@@ -135,10 +132,12 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
             when(protocolState) {
                 Constants.PROTOCOL_INIT -> {
                     Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
+                    mActivity.sendMessage("READY")
                     protocolState = Constants.VERIFIER_AWAIT_INTRO
                 }
 
                 Constants.VERIFIER_AWAIT_INTRO -> {
+                    Log.i("NEXT_STATE","GET_INTRO")
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_CHALLENGE
                 }
@@ -498,8 +497,9 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     val readMessage = String(readBuf, 0, msg.arg1)
                     val milliSecondsTime = System.currentTimeMillis()
                     if(protocolHandler != null) {
-                        protocolHandler!!.nextState(readMessage)
+
                         chatFragment.communicate(Message("Received message:\n$readMessage", milliSecondsTime, Constants.MESSAGE_TYPE_RECEIVED))
+                        protocolHandler!!.nextState(readMessage)
                     } else {
 
 
