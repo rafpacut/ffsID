@@ -25,6 +25,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.widget.*
+import java.lang.StringBuilder
 
 
 class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickListener, ChatFragment.CommunicationListener {
@@ -53,14 +54,135 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
     private var mBluetoothChatService: BluetoothChatService? = null
     private lateinit var chatFragment: ChatFragment
 
+    private lateinit var arrayToSendInString: String
+    private var transmissionState: Int = Constants.STATE_DEFAULT
+
+
+    class ProtocolHandler(userRole: Int, mainActivity: MainActivity) {
+        private var mActivity: MainActivity
+        private var userRole: Int = Constants.USER_ROLE_NONE
+        private var protocolState: Int = Constants.PROTOCOL_END
+        private lateinit var receivedList: List<Int>
+
+        init {
+            this.mActivity = mainActivity
+            this.userRole = userRole
+            if(userRole.equals(Constants.USER_ROLE_VERIFIER)) {
+                mActivity.sendInt(Constants.MESSAGE_RECEIVED)
+            } else if(userRole.equals(Constants.USER_ROLE_PROVER)) {
+                mActivity.sendInt(Constants.PROTOCOL_INIT)
+            }
+
+            this.protocolState = Constants.PROTOCOL_INIT
+        }
+
+
+        fun nextState(msg: String) {
+            when (userRole) {
+                Constants.USER_ROLE_VERIFIER -> {
+                    nextVerifierState(msg)
+                }
+
+                Constants.USER_ROLE_PROVER -> {
+                    nextProverState(msg)
+                }
+            }
+        }
+
+        private fun nextProverState(stageMessage: String) {
+            when(protocolState) {
+                Constants.PROTOCOL_INIT -> {
+                    Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
+                    mActivity.sendMessage("PROVER INTRO")
+                    protocolState = Constants.PROVER_INTRODUCTION
+                }
+
+                Constants.PROVER_INTRODUCTION -> {
+                    mActivity.sendMessage("INTRODUCTION")
+                    protocolState = Constants.PROVER_AWAIT_CHALLENGE
+                }
+
+                Constants.PROVER_AWAIT_CHALLENGE -> {
+                    //fetch challenge
+                    mActivity.sendMessage("PROVER_REG_INFO")
+                    protocolState = Constants.PROVER_GEN_X
+                }
+
+                Constants.PROVER_GEN_X -> {
+                    //gen x and send to verifier
+                    mActivity.sendMessage("PROVER_X")
+                    protocolState = Constants.PROVER_CALC_Y
+                }
+
+                Constants.PROVER_CALC_Y -> {
+                    //calcY and send to verifier
+                    mActivity.sendMessage("PROVER_Y")
+                    protocolState = Constants.PROVER_AWAIT_VERIFICATION
+                }
+
+                Constants.PROVER_AWAIT_VERIFICATION -> {
+                    //get the verification results
+                    mActivity.sendMessage("VERIFY")
+                    protocolState = Constants.PROTOCOL_END
+                }
+            }
+        }
+
+        private fun nextVerifierState(stageMessage: String) {
+            when(protocolState) {
+                Constants.PROTOCOL_INIT -> {
+                    Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
+                    mActivity.sendMessage("READY")
+                    protocolState = Constants.VERIFIER_AWAIT_INTRO
+                }
+
+                Constants.VERIFIER_AWAIT_INTRO -> {
+                    Log.i("NEXT_STATE","GET_INTRO")
+                    mActivity.sendMessage("RECEIVED")
+                    protocolState = Constants.VERIFIER_CHALLENGE
+                }
+
+                Constants.VERIFIER_CHALLENGE -> {
+                    //verifier gen challlenge
+                    mActivity.sendMessage("CHALLENGE")
+                    protocolState = Constants.VERIFIER_AWAIT_REG_INFO
+                }
+
+                Constants.VERIFIER_AWAIT_REG_INFO -> {
+                    //verifier fetch the reg info
+                    mActivity.sendMessage("FETCHED_REG_INFO")
+                    protocolState = Constants.VERIFIER_AWAIT_X
+                }
+
+                Constants.VERIFIER_AWAIT_X -> {
+                    //verifier fetch x
+                    mActivity.sendMessage("FETCHED_X")
+                    protocolState = Constants.VERIFIER_AWAIT_Y
+                }
+
+                Constants.VERIFIER_AWAIT_Y -> {
+                    //verifier fetch y and verify
+                    mActivity.sendMessage("APPROVED")
+                    protocolState = Constants.PROTOCOL_END
+                }
+            }
+        }
+
+//        fun receiveListInString(arrayListInString: String) {
+//            var splittedString = arrayListInString.split(Constants.ARRAY_SEPARATOR)
+////            receivedList = List<Int>(splittedString.size) {i -> splittedString[i].toInt()}
+//            mActivity.sendInt(Constants.MESSAGE_RECEIVED)
+//        }
+
+    }
+
+
+    private var protocolHandler: ProtocolHandler? = null
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        val toolbarTitle = findViewById<TextView>(R.id.toolbarTitle)
-
-//        val typeFace = Typeface.createFromAsset(assets,"fonts/product_sans.ttf")
-//        toolbarTitle.typeface = typeFace
 
         progressBar = findViewById(R.id.progressBar)
         recyclerView = findViewById(R.id.recyclerView)
@@ -302,6 +424,12 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         unregisterReceiver(mReceiver)
     }
 
+    fun initProtocol(userRole: Int) {
+        if(protocolHandler == null) {
+            protocolHandler = MainActivity.ProtocolHandler(userRole,this)
+        }
+    }
+
     private val mHandler = @SuppressLint("HandlerLeak")
     object : Handler() {
         override fun handleMessage(msg: Message) {
@@ -337,24 +465,82 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                 }
 
                 Constants.MESSAGE_WRITE -> {
-                    val writeBuf = msg.obj as ByteArray
-                    // construct a string from the buffer
-                    val writeMessage = String(writeBuf)
-                    //Toast.makeText(this@MainActivity,"Me: $writeMessage",Toast.LENGTH_SHORT).show()
-                    //mConversationArrayAdapter.add("Me:  " + writeMessage)
-                    val milliSecondsTime = System.currentTimeMillis()
-                    chatFragment.communicate(Message(writeMessage,milliSecondsTime,Constants.MESSAGE_TYPE_SENT))
+                        val writeBuf = msg.obj as ByteArray
+                        // construct a string from the buffer
+                        val writeMessage = String(writeBuf)
+                        //Toast.makeText(this@MainActivity,"Me: $writeMessage",Toast.LENGTH_SHORT).show()
+                        //mConversationArrayAdapter.add("Me:  " + writeMessage)
+                        val milliSecondsTime = System.currentTimeMillis()
+                        chatFragment.communicate(Message(writeMessage, milliSecondsTime, Constants.MESSAGE_TYPE_SENT))
 
                 }
+
+                Constants.MESSAGE_WRITE_INT -> {
+                    val milliSecondsTime = System.currentTimeMillis()
+                    if(msg.obj == Constants.MESSAGE_RECEIVED) {
+                        var message = Constants.RECEIVED
+                        chatFragment.communicate(Message(message,milliSecondsTime,Constants.MESSAGE_TYPE_SENT))
+                    } else {
+                        chatFragment.communicate(
+                            Message(
+                                msg.obj.toString(),
+                                milliSecondsTime,
+                                Constants.MESSAGE_TYPE_SENT
+                            )
+                        )
+                    }
+                }
+
                 Constants.MESSAGE_READ -> {
                     val readBuf = msg.obj as ByteArray
                     // construct a string from the valid bytes in the buffer
                     val readMessage = String(readBuf, 0, msg.arg1)
                     val milliSecondsTime = System.currentTimeMillis()
-                    //Toast.makeText(this@MainActivity,"$mConnectedDeviceName : $readMessage",Toast.LENGTH_SHORT).show()
-                    //mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage)
-                    chatFragment.communicate(Message(readMessage,milliSecondsTime,Constants.MESSAGE_TYPE_RECEIVED))
+                    if(protocolHandler != null) {
+
+                        chatFragment.communicate(Message("Received message:\n$readMessage", milliSecondsTime, Constants.MESSAGE_TYPE_RECEIVED))
+                        protocolHandler!!.nextState(readMessage)
+                    } else {
+
+
+                        //Toast.makeText(this@MainActivity,"$mConnectedDeviceName : $readMessage",Toast.LENGTH_SHORT).show()
+                        //mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage)
+                        chatFragment.communicate(
+                            Message(
+                                readMessage,
+                                milliSecondsTime,
+                                Constants.MESSAGE_TYPE_RECEIVED
+                            )
+                        )
+                    }
                 }
+
+                Constants.MESSAGE_RECEIVED -> {
+                    val milliSecondsTime = System.currentTimeMillis()
+                    chatFragment.communicate(Message(Constants.RECEIVED,milliSecondsTime,Constants.MESSAGE_TYPE_RECEIVED))
+                    protocolHandler?.nextState("")
+                }
+
+                Constants.PROTOCOL_INIT -> {
+                    initProtocol(Constants.USER_ROLE_VERIFIER)
+                    val milliSecondsTime = System.currentTimeMillis()
+                    chatFragment.communicate(Message("Protocol has been initailized",milliSecondsTime,Constants.MESSAGE_TYPE_RECEIVED))
+
+                }
+
+                Constants.SEND_ARRAY_INIT -> {
+                    val milliSecondsTime = System.currentTimeMillis()
+                    chatFragment.communicate(Message("Init info about sending arraylist",milliSecondsTime,Constants.MESSAGE_TYPE_RECEIVED))
+                }
+
+                Constants.WAIT_FOR_ARRAY -> {
+                    transmissionState = Constants.WAIT_FOR_ARRAY
+                    val milliSecondsTime = System.currentTimeMillis()
+                    chatFragment.communicate(Message("Waiting for an array",milliSecondsTime,Constants.MESSAGE_TYPE_RECEIVED))
+                    sendInt(Constants.MESSAGE_RECEIVED)
+
+                }
+
                 Constants.MESSAGE_DEVICE_NAME -> {
                     // save the connected device's name
                     mConnectedDeviceName = msg.data.getString(Constants.DEVICE_NAME)
@@ -364,6 +550,7 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     connected = true
                     showChatFragment()
                 }
+
                 Constants.MESSAGE_TOAST -> {
                     status.text = getString(R.string.not_connected)
                     connectionDot.setImageDrawable(getDrawable(R.mipmap.ic_circle_red))
@@ -374,16 +561,56 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         }
     }
 
-    private fun sendMessage(message: String) {
-        if(mBluetoothChatService?.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return
+    private fun arrayListToString(arrayList: List<Int>): String {
+        val stringBuilder = StringBuilder()
+        var element: Int
+        for(i in 0..arrayList.size-2) {
+            element = arrayList.get(i)
+           stringBuilder.append(element).append(Constants.ARRAY_SEPARATOR)
         }
 
-        if(message.isNotEmpty()) {
+        element = arrayList.get(arrayList.size-1)
+        stringBuilder.append(element)
+
+        return stringBuilder.toString()
+    }
+
+    private fun sendArrayList(outArrayList: List<Int>) {
+        if(isStateConnected()) {
+            arrayToSendInString = arrayListToString(outArrayList)
+            sendMessage(arrayToSendInString)
+//            transmissionState = Constants.SEND_ARRAY_INIT
+
+        }
+    }
+
+    private fun sendByteArray(byteArray: ByteArray) {
+        if(isStateConnected()) {
+            mBluetoothChatService?.write(byteArray)
+        }
+    }
+
+    private fun sendInt(intMessage: Int) {
+        if(isStateConnected()) {
+            mBluetoothChatService?.writeInt(intMessage)
+        }
+    }
+
+    private fun sendMessage(message: String) {
+
+        if(isStateConnected() && message.isNotEmpty()) {
             val send = message.toByteArray()
             mBluetoothChatService?.write(send)
         }
+    }
+
+    private fun isStateConnected(): Boolean {
+        if(mBluetoothChatService?.getState() != BluetoothChatService.STATE_CONNECTED) {
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return false
+        }
+
+        return true
     }
 
     private fun showChatFragment() {
@@ -400,7 +627,12 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
     }
 
     override fun onCommunication(message: String) {
-        sendMessage(message)
+        if(message.equals(Constants.PROTOCOL_INIT.toString())) {
+            initProtocol(Constants.USER_ROLE_PROVER)
+        } else {
+            sendMessage(message)
+        }
+
     }
 
     override fun onBackPressed() {

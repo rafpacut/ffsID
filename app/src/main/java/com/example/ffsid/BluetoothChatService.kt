@@ -7,12 +7,16 @@ import android.util.Log
 import android.bluetooth.BluetoothSocket
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothServerSocket
+import android.graphics.drawable.Drawable
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import android.os.Bundle
 import android.os.Handler
 import java.util.*
+import android.os.ParcelUuid
+
+
 
 /**
  * Created by ramankit on 20/7/17.
@@ -33,9 +37,13 @@ class BluetoothChatService(context: Context, handler: Handler){
     private val  TAG: String = javaClass.simpleName
 
     // Unique UUID for this application
-    private val MY_UUID_SECURE = UUID.fromString("29621b37-e817-485a-a258-52da5261421a")
-    private val MY_UUID_INSECURE = UUID.fromString("d620cd2b-e0a4-435b-b02e-40324d57195b")
 
+    private val MY_UUID_SECURE = UUID.fromString("184c37ef-2e4a-4441-bd91-f86895ef7408")
+    private val MY_UUID_INSECURE = UUID.fromString("f2f0a6e8-6474-42aa-97c1-ab69426ebbc4")
+
+
+    //private lateinit var MY_UUID_SECURE: String
+    //private lateinit var MY_UUID_INSECURE: String
 
     // Name for the SDP record when creating server socket
     private val NAME_SECURE = "BluetoothChatSecure"
@@ -55,6 +63,8 @@ class BluetoothChatService(context: Context, handler: Handler){
         mState = STATE_NONE
         mNewState = mState
         mHandler = handler
+
+
     }
 
     /**
@@ -221,6 +231,28 @@ class BluetoothChatService(context: Context, handler: Handler){
         }
         // Perform the write unsynchronized
         r?.write(out)
+    }
+
+    fun writeInt(out: Int) {
+        var r: ConnectedThread? = null
+
+        synchronized(this) {
+            if(mState != STATE_CONNECTED) return
+            r = mConnectedThread
+        }
+
+        r?.writeInt(out)
+    }
+
+    fun writeArray(outArray: List<Int>) {
+        var r: ConnectedThread? = null
+
+        synchronized(this) {
+            if(mState != STATE_CONNECTED) return
+            r = mConnectedThread
+        }
+
+        r?.writeInt(Constants.SEND_ARRAY_INIT)
     }
 
 
@@ -466,13 +498,39 @@ class BluetoothChatService(context: Context, handler: Handler){
                     // Read from the InputStream
                     bytes = mmInStream?.read(buffer) ?: 0
 
+                    receivedMessageMux(bytes,buffer)
                     // Send the obtained bytes to the UI Activity
-                    mHandler?.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
-                        ?.sendToTarget()
+//                    mHandler?.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
+//                        ?.sendToTarget()
                 } catch (e: IOException) {
                     Log.e(TAG, "disconnected", e)
                     connectionLost()
                     break
+                }
+
+            }
+        }
+
+        fun receivedMessageMux(bytes: Int, buffer: ByteArray) {
+            when(buffer[0]) {
+                Constants.MESSAGE_RECEIVED.toByte() -> {
+                    mHandler?.obtainMessage(Constants.MESSAGE_RECEIVED, bytes, -1, buffer)
+                        ?.sendToTarget()
+                }
+
+                Constants.PROTOCOL_INIT.toByte() -> {
+                    mHandler?.obtainMessage(Constants.PROTOCOL_INIT, bytes, -1, buffer)
+                        ?.sendToTarget()
+                }
+
+                Constants.SEND_ARRAY_INIT.toByte() -> {
+                    mHandler?.obtainMessage(Constants.WAIT_FOR_ARRAY, bytes, -1, buffer)
+                        ?.sendToTarget()
+                }
+
+                else -> {
+                    mHandler?.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
+                        ?.sendToTarget()
                 }
 
             }
@@ -494,6 +552,37 @@ class BluetoothChatService(context: Context, handler: Handler){
             }
 
         }
+
+        fun writeInt(buffer: Int) {
+            try {
+                mmOutStream?.write(buffer)
+
+                mHandler?.obtainMessage(Constants.MESSAGE_WRITE_INT, -1, -1, buffer)
+                    ?.sendToTarget()
+
+            } catch (e: IOException) {
+                Log.e(TAG,"Exception during writeInt",e)
+
+            }
+        }
+
+//        fun writeArray(bufferArray: List<Int>) {
+//
+//        }
+
+//        fun writeIntList(intList: List<Int>) {
+//            try {
+//                mmOutStream?.write(intList)
+//
+//                mHandler?.obtainMessage(Constants.MESSAGE_WRITE, -1, -1, buffer)
+//                    ?.sendToTarget()
+//
+//            } catch (e: IOException) {
+//                Log.e(TAG,"Exception during writeInt",e)
+//
+//            }
+//        }
+
 
         fun cancel() {
             try {

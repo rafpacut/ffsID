@@ -9,19 +9,16 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.text.Editable
 import android.util.Log
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.Toast
-
+import android.widget.*
 
 
 class ChatFragment : Fragment(), View.OnClickListener {
 
     private lateinit var chatInput: EditText
     private lateinit var sendButton: FrameLayout
+    private lateinit var initButton: Button
     private var communicationListener: CommunicationListener? = null
     private var chatAdapter: ChatAdapter? = null
     private lateinit var recyclerviewChat: RecyclerView
@@ -81,9 +78,20 @@ class ChatFragment : Fragment(), View.OnClickListener {
         sendButton.setOnClickListener(this)
 
 
+        initButton = mView.findViewById(R.id.initProtocol)
+        initButton.setOnClickListener {
+            runProtocol()
+        }
+
+
+
         chatAdapter = activity?.let { ChatAdapter(messageList.reversed(), it) }
         recyclerviewChat.adapter = chatAdapter
 
+    }
+
+    private fun runProtocol() {
+        communicationListener?.onCommunication(Constants.PROTOCOL_INIT.toString())
     }
 
     override fun onClick(p0: View?) {
