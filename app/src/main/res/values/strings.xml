@@ -22,4 +22,5 @@
     <string name="bluetooth_not_enabled">Bluetooth not enabled</string>
     <string name="fun_limited">No fun</string>
     <string name="since_perm_not_granted">We need this to pass crypto</string>
+    <string name="init_protocol">Init protocol</string>
 </resources>
