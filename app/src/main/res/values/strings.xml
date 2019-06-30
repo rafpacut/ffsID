@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">ffsID</string>
+    <string name="refresh">REFRESH</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="disconnect">DISCONNECT</string>
+    <string name="not_compatible">Not compatible</string>
+    <string name="no_support">No support</string>
+    <string name="please_grant_loc_access">Please grant location access</string>
+    <string name="need_loc_access">Need location access</string>
+    <string name="write_something">Write init message</string>
+    <string name="test_stamp">Test stamp</string>
+    <string name="test_message">Test message</string>
+    <string name="connected_to">Connected to</string>
+    <string name="connecting">Connecting</string>
+    <string name="not_connected">Not connected</string>
+    <string name="search_devices">Search</string>
+    <string name="make_discoverable">Make discoverable</string>
+    <string name="appbar_scrolling_view_behavior">Appbar scrolling view behavior</string>
+    <string name="paired_devices">Paired devices</string>
+    <string name="searching">Searching</string>
+    <string name="bluetooth_not_enabled">Bluetooth not enabled</string>
+    <string name="fun_limited">No fun</string>
+    <string name="since_perm_not_granted">We need this to pass crypto</string>
 </resources>
