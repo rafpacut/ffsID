@@ -15,11 +15,11 @@ class Verifier(val secParam : Int)
     private val q : Long = 1019
     val N : Long = p*q
 
-    fun fetchIntroduction(btCon : BTConnectionWrapper)
+    fun fetchIntroduction(introduction : Introduction, introductionSignature : ByteArray)
     {
-        receivedIntroduction = btCon.introduction
+        receivedIntroduction = introduction
         proverPublicKey = receivedIntroduction.publicKey
-        val introductionSignature = btCon.introductionSignature
+        val introductionSignature = introductionSignature
         if(!verifyIntroduction(receivedIntroduction.getHash(), introductionSignature))
         {
             throw Exception("Prover's introduction signature rejected.")

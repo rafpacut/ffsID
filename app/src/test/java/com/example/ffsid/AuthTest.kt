@@ -32,17 +32,17 @@ class AuthTest {
         caHandle = CAWrapper()
     }
 
-    @Test
-    fun introductionTxTest()
-    {
-        setUp()
+ //   @Test
+ //   fun introductionTxTest()
+ //   {
+ //       setUp()
 
-        val (intro, signature) = prover.getIntroduction()
-        btCon.send(intro, signature)
+ //       val (intro, signature) = prover.getIntroduction()
+ //       btCon.send(intro, signature)
 
-        verifier.fetchIntroduction(btCon)
-        assertEquals("Introduction transfer did not succeed.", intro, verifier.receivedIntroduction);
-    }
+ //       verifier.fetchIntroduction(btCon)
+ //       assertEquals("Introduction transfer did not succeed.", intro, verifier.receivedIntroduction);
+ //   }
 
     @Test
     fun xTxTest()
@@ -90,25 +90,25 @@ class AuthTest {
         assertTrue(verifier.verify())
     }
 
-    @Test
-    fun successfulAuthTest() {
-        setUp()
+  //  @Test
+  //  fun successfulAuthTest() {
+  //      setUp()
 
-        val (introduction, signature) = prover.getIntroduction();
-        btCon.send(introduction, signature);
-        verifier.fetchIntroduction(btCon);
+  //      val (introduction, signature) = prover.getIntroduction();
+  //      btCon.send(introduction, signature);
+  //      verifier.fetchIntroduction(btCon);
 
-        val challenge = verifier.genChallenge();
-        btCon.send(challenge);
-        prover.fetchChallenge(btCon);
+  //      val challenge = verifier.genChallenge();
+  //      btCon.send(challenge);
+  //      prover.fetchChallenge(btCon);
 
-        val x = prover.genX();
-        btCon.send(x);
-        verifier.fetchX(btCon)
+  //      val x = prover.genX();
+  //      btCon.send(x);
+  //      verifier.fetchX(btCon)
 
-        val py = prover.calcY()
-        btCon.sendY(py)
-        verifier.fetchY(btCon)
-        assertTrue(verifier.verify())
-    }
+  //      val py = prover.calcY()
+  //      btCon.sendY(py)
+  //      verifier.fetchY(btCon)
+  //      assertTrue(verifier.verify())
+  //  }
 }

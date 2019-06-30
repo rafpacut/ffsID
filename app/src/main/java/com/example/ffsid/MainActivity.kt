@@ -26,6 +26,8 @@ import android.support.v7.widget.RecyclerView
 import android.view.View
 import android.widget.*
 import java.lang.StringBuilder
+import Prover
+import Verifier
 
 
 class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickListener, ChatFragment.CommunicationListener {
@@ -62,6 +64,9 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         private var mActivity: MainActivity
         private var userRole: Int = Constants.USER_ROLE_NONE
         private var protocolState: Int = Constants.PROTOCOL_END
+        private val securityParam = 5
+        private var prover = Prover(securityParam)
+        private var verifier = Verifier(securityParam)
         private lateinit var receivedList: List<Int>
 
         init {
@@ -99,24 +104,37 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
 
                 Constants.PROVER_INTRODUCTION -> {
                     mActivity.sendMessage("INTRODUCTION")
+
+                    val (introduction, signature) = prover.getIntroduction()
+                    mActivity.sendMessage(introduction.name, introduction.publicKey, signature)
+
                     protocolState = Constants.PROVER_AWAIT_CHALLENGE
                 }
 
                 Constants.PROVER_AWAIT_CHALLENGE -> {
                     //fetch challenge
+                    //stageMessage to List<Int>
+
+                    val recChallenge = listOf(1)
+                    prover.receivedChallenge = recChallenge
+
                     mActivity.sendMessage("PROVER_REG_INFO")
                     protocolState = Constants.PROVER_GEN_X
                 }
 
                 Constants.PROVER_GEN_X -> {
                     //gen x and send to verifier
-                    mActivity.sendMessage("PROVER_X")
+
+                    val X = prover.genX()
+                    mActivity.sendMessage(X)
                     protocolState = Constants.PROVER_CALC_Y
                 }
 
                 Constants.PROVER_CALC_Y -> {
                     //calcY and send to verifier
-                    mActivity.sendMessage("PROVER_Y")
+
+                    val y = prover.calcY()
+                    mActivity.sendMessage(y)
                     protocolState = Constants.PROVER_AWAIT_VERIFICATION
                 }
 
@@ -138,31 +156,43 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
 
                 Constants.VERIFIER_AWAIT_INTRO -> {
                     Log.i("NEXT_STATE","GET_INTRO")
+                    //message to name : String, publicKey : List<Long>
+                    //introductionSignature : ByteArray
+                    val name = ""
+                    val publicKey = listOf(1,2)
+                    val introductionSignature = byteArrayOf(1)
+
+                    verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_CHALLENGE
                 }
 
                 Constants.VERIFIER_CHALLENGE -> {
                     //verifier gen challlenge
-                    mActivity.sendMessage("CHALLENGE")
-                    protocolState = Constants.VERIFIER_AWAIT_REG_INFO
-                }
 
-                Constants.VERIFIER_AWAIT_REG_INFO -> {
-                    //verifier fetch the reg info
-                    mActivity.sendMessage("FETCHED_REG_INFO")
-                    protocolState = Constants.VERIFIER_AWAIT_X
+                    val c = verifier.genChallenge()
+                    mActivity.sendMessage(c)
+                    protocolState = Constants.VERIFIER_AWAIT_REG_INFO
                 }
 
                 Constants.VERIFIER_AWAIT_X -> {
                     //verifier fetch x
+
+                    val X = 1
+                    verifier.receivedX = X
                     mActivity.sendMessage("FETCHED_X")
                     protocolState = Constants.VERIFIER_AWAIT_Y
                 }
 
                 Constants.VERIFIER_AWAIT_Y -> {
                     //verifier fetch y and verify
-                    mActivity.sendMessage("APPROVED")
+
+                    val Y = 1
+                    verifier.receivedY = Y
+                    if(!verifier.verify())
+                        mActivity.sendMessage("REJECTED")
+                    //else if (ctr == roundsNumber)
+                    //sendMessage("Accepted")
                     protocolState = Constants.PROTOCOL_END
                 }
             }
