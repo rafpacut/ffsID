@@ -28,6 +28,8 @@ import android.widget.*
 import java.lang.StringBuilder
 import Prover
 import Verifier
+import java.io.IOException
+import kotlin.random.Random
 
 
 class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickListener, ChatFragment.CommunicationListener {
@@ -65,20 +67,28 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         private var userRole: Int = Constants.USER_ROLE_NONE
         private var protocolState: Int = Constants.PROTOCOL_END
         private val securityParam = 5
-        private var prover = Prover(securityParam)
-        private var verifier = Verifier(securityParam)
-        private lateinit var receivedList: List<Int>
+        private var name: String = ""
+//        private var prover = Prover(securityParam)
+//        private var verifier = Verifier(securityParam)
+//        private lateinit var receivedList: List<Int>
+
+        private var roundsNumber : Int = 0
+        private var roundCounter : Int = 0
 
         init {
             this.mActivity = mainActivity
             this.userRole = userRole
             if(userRole.equals(Constants.USER_ROLE_VERIFIER)) {
-                mActivity.sendInt(Constants.MESSAGE_RECEIVED)
+
+                roundsNumber = Random.nextInt(1,10) // Generate numbers of rounds for the protocol
+                mActivity.sendInt(roundsNumber)
+//                nextState("")
+                this.protocolState = Constants.VERIFIER_AWAIT_INTRO
             } else if(userRole.equals(Constants.USER_ROLE_PROVER)) {
                 mActivity.sendInt(Constants.PROTOCOL_INIT)
+                this.protocolState = Constants.PROTOCOL_INIT
             }
 
-            this.protocolState = Constants.PROTOCOL_INIT
         }
 
 
@@ -98,50 +108,75 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
             when(protocolState) {
                 Constants.PROTOCOL_INIT -> {
                     Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
-                    mActivity.sendMessage("PROVER INTRO")
-                    protocolState = Constants.PROVER_INTRODUCTION
+                    roundsNumber = stageMessage.toInt()
+//                    val (introduction, signature) = prover.getIntroduction()
+//                    val publicKeyString = listToString(introduction.publicKey)
+
+
+                    name = "hello world"
+                    val publicKey = List<Long>(5) {Random.nextLong(1000,101010101)}
+                    val publicKeyString = listLongToString(publicKey)
+                    var signature = "abcdef".toByteArray()
+
+                    val stringBuilder = StringBuilder()
+                    stringBuilder.append(name).append(Constants.PACKET_SEPARATOR)
+                    stringBuilder.append(publicKeyString).append(Constants.PACKET_SEPARATOR)
+                    stringBuilder.append(signature.toString())
+
+                    mActivity.sendMessage(stringBuilder.toString())
+                    protocolState = Constants.PROVER_AWAIT_INTRODUCTION_CONFIRMATION
                 }
 
-                Constants.PROVER_INTRODUCTION -> {
-                    mActivity.sendMessage("INTRODUCTION")
-
-                    val (introduction, signature) = prover.getIntroduction()
-                    mActivity.sendMessage(introduction.name, introduction.publicKey, signature)
-
+                Constants.PROVER_AWAIT_INTRODUCTION_CONFIRMATION -> {
+                    mActivity.sendMessage("AWAIT_CHALLENGE")
                     protocolState = Constants.PROVER_AWAIT_CHALLENGE
                 }
 
                 Constants.PROVER_AWAIT_CHALLENGE -> {
                     //fetch challenge
                     //stageMessage to List<Int>
-
-                    val recChallenge = listOf(1)
-                    prover.receivedChallenge = recChallenge
-
-                    mActivity.sendMessage("PROVER_REG_INFO")
+                    val recChallenge = stringToListInt(stageMessage)
+                    Log.i("RECEIVED_CHALLENGE",recChallenge.get(0).toString())
+                    //prover.receivedChallenge = recChallenge
+                    mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.PROVER_GEN_X
                 }
 
                 Constants.PROVER_GEN_X -> {
                     //gen x and send to verifier
-
-                    val X = prover.genX()
-                    mActivity.sendMessage(X)
+                    // val x = prover.genX()
+                    val x = Random.nextLong(0,100000)
+                    mActivity.sendMessage(x.toString())
                     protocolState = Constants.PROVER_CALC_Y
                 }
 
                 Constants.PROVER_CALC_Y -> {
                     //calcY and send to verifier
-
-                    val y = prover.calcY()
-                    mActivity.sendMessage(y)
+                    val y = Random.nextLong(0,100000)
+                    //val y = prover.calcY()
+                    mActivity.sendMessage(y.toString())
                     protocolState = Constants.PROVER_AWAIT_VERIFICATION
                 }
 
                 Constants.PROVER_AWAIT_VERIFICATION -> {
                     //get the verification results
-                    mActivity.sendMessage("VERIFY")
-                    protocolState = Constants.PROTOCOL_END
+                    val verifyResult = stageMessage.split("_").get(0)
+
+                    if(verifyResult.equals("APPROVED")) {
+                        Log.i("PROVER_VERIFICATION","APPROVED")
+                    } else {
+                        Log.i("PROVER_VERIFICATION","REJECTED")
+                    }
+
+                    if(roundCounter <= roundsNumber) {
+                        roundCounter++
+                        mActivity.sendMessage("NEXT_ROUND_${roundCounter}")
+                        protocolState = Constants.PROVER_AWAIT_CHALLENGE
+                    } else {
+                        val milliSecondsTime = System.currentTimeMillis()
+                        mActivity.chatFragment.communicate(Message("NAME: ${name}",milliSecondsTime,Constants.MESSAGE_TYPE_SENT))
+                        protocolState = Constants.PROTOCOL_END
+                    }
                 }
             }
         }
@@ -150,7 +185,7 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
             when(protocolState) {
                 Constants.PROTOCOL_INIT -> {
                     Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
-                    mActivity.sendMessage("READY")
+
                     protocolState = Constants.VERIFIER_AWAIT_INTRO
                 }
 
@@ -158,51 +193,109 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     Log.i("NEXT_STATE","GET_INTRO")
                     //message to name : String, publicKey : List<Long>
                     //introductionSignature : ByteArray
-                    val name = ""
-                    val publicKey = listOf(1,2)
-                    val introductionSignature = byteArrayOf(1)
+                    val unpackedMessage = stageMessage.split(Constants.PACKET_SEPARATOR)
+                    name = unpackedMessage.get(0)
+                    val publicKey = stringToListLong(unpackedMessage.get(1))
+                    val introductionSignature = unpackedMessage.get(2).toByteArray()
 
-                    verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
+                    Log.i("VERIFIER_NAME",name)
+                    Log.i("VERIFIER_PUBLIC_KEY",publicKey.size.toString())
+                    Log.i("PROVER_SIGNATURE",introductionSignature.toString())
+
+//                    verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_CHALLENGE
                 }
 
                 Constants.VERIFIER_CHALLENGE -> {
                     //verifier gen challlenge
+                    val challenge = List<Int>(5){Random.nextInt(1,100)}
+//                    val challenge = verifier.genChallenge()
+                    var stringChallenge = listIntToString(challenge)
+                    mActivity.sendMessage(stringChallenge)
+                    protocolState = Constants.VERIFIER_AWAIT_CONFIRM
+                }
 
-                    val c = verifier.genChallenge()
-                    mActivity.sendMessage(c)
-                    protocolState = Constants.VERIFIER_AWAIT_REG_INFO
+                Constants.VERIFIER_AWAIT_CONFIRM -> {
+                    mActivity.sendMessage("AWAIT_FOR_X")
+                    protocolState = Constants.VERIFIER_AWAIT_X
                 }
 
                 Constants.VERIFIER_AWAIT_X -> {
                     //verifier fetch x
 
-                    val X = 1
-                    verifier.receivedX = X
-                    mActivity.sendMessage("FETCHED_X")
+                    val x = stageMessage.toLong()
+//                    verifier.receivedX = X
+                    mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_AWAIT_Y
                 }
 
                 Constants.VERIFIER_AWAIT_Y -> {
                     //verifier fetch y and verify
 
-                    val Y = 1
-                    verifier.receivedY = Y
-                    if(!verifier.verify())
-                        mActivity.sendMessage("REJECTED")
+                    val y = stageMessage.toLong()
+
+                    if(roundCounter%2 == 0) {
+                        mActivity.sendMessage("APPROVED_${roundCounter}")
+                    } else {
+                        mActivity.sendMessage("REJECTED_${roundCounter}")
+                    }
+
+                    if(roundCounter <= roundsNumber) {
+                        roundCounter++
+                        protocolState = Constants.VERIFIER_CHALLENGE
+                    } else {
+                        val milliSecondsTime = System.currentTimeMillis()
+                        mActivity.chatFragment.communicate(Message("NAME: ${name}",milliSecondsTime,Constants.MESSAGE_TYPE_SENT))
+                        protocolState = Constants.PROTOCOL_END
+                    }
+//                    verifier.receivedY = Y
+//                    if(!verifier.verify())
+//                        mActivity.sendMessage("REJECTED")
                     //else if (ctr == roundsNumber)
                     //sendMessage("Accepted")
-                    protocolState = Constants.PROTOCOL_END
+
                 }
             }
         }
 
-//        fun receiveListInString(arrayListInString: String) {
-//            var splittedString = arrayListInString.split(Constants.ARRAY_SEPARATOR)
-////            receivedList = List<Int>(splittedString.size) {i -> splittedString[i].toInt()}
-//            mActivity.sendInt(Constants.MESSAGE_RECEIVED)
-//        }
+        fun stringToListLong(recString: String): List<Long> {
+            var splittedString = recString.split(Constants.ARRAY_SEPARATOR)
+            return List<Long>(splittedString.size) {i -> splittedString[i].toLong()}
+        }
+
+        fun stringToListInt(recString: String): List<Int> {
+            var splittedString = recString.split(Constants.ARRAY_SEPARATOR)
+            return List<Int>(splittedString.size) {i -> splittedString[i].toInt()}
+        }
+
+        fun listIntToString(list: List<Int>): String {
+            val stringBuilder = StringBuilder()
+            var element: Any
+            for(i in 0..list.size-2) {
+                element = list.get(i)
+                stringBuilder.append(element).append(Constants.ARRAY_SEPARATOR)
+            }
+
+            element = list.get(list.size-1)
+            stringBuilder.append(element)
+
+            return stringBuilder.toString()
+        }
+
+        fun listLongToString(list: List<Long>): String {
+            val stringBuilder = StringBuilder()
+            var element: Any
+            for(i in 0..list.size-2) {
+                element = list.get(i)
+                stringBuilder.append(element).append(Constants.ARRAY_SEPARATOR)
+            }
+
+            element = list.get(list.size-1)
+            stringBuilder.append(element)
+
+            return stringBuilder.toString()
+        }
 
     }
 
@@ -525,13 +618,20 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     val readBuf = msg.obj as ByteArray
                     // construct a string from the valid bytes in the buffer
                     val readMessage = String(readBuf, 0, msg.arg1)
+                    var readMessageInt = -1
+                    try {
+                        readMessageInt = readMessage.toInt()
+                    } catch (e: Exception) { }
+
                     val milliSecondsTime = System.currentTimeMillis()
                     if(protocolHandler != null) {
 
                         chatFragment.communicate(Message("Received message:\n$readMessage", milliSecondsTime, Constants.MESSAGE_TYPE_RECEIVED))
                         protocolHandler!!.nextState(readMessage)
+                    } else if(readMessageInt == Constants.PROTOCOL_INIT) {
+                        chatFragment.communicate(Message("Received message:\n$readMessage", milliSecondsTime, Constants.MESSAGE_TYPE_RECEIVED))
+                        initProtocol(Constants.USER_ROLE_VERIFIER)
                     } else {
-
 
                         //Toast.makeText(this@MainActivity,"$mConnectedDeviceName : $readMessage",Toast.LENGTH_SHORT).show()
                         //mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage)
@@ -616,13 +716,16 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
 
     private fun sendByteArray(byteArray: ByteArray) {
         if(isStateConnected()) {
-            mBluetoothChatService?.write(byteArray)
+//            mBluetoothChatService?.write(byteArray)
+            sendMessage(String(byteArray))
         }
+
     }
 
     private fun sendInt(intMessage: Int) {
         if(isStateConnected()) {
-            mBluetoothChatService?.writeInt(intMessage)
+//            mBluetoothChatService?.writeInt(intMessage)
+            sendMessage(intMessage.toString())
         }
     }
 

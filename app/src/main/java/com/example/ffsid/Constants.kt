@@ -13,6 +13,8 @@ class Constants{
         val MESSAGE_RECEIVED = 6
         var MESSAGE_TYPE_SENT = 0
         var MESSAGE_TYPE_RECEIVED = 1
+        var MESSAGE_TYPE_PROTOCOL_APPROVED = 220
+        var MESSAGE_TYPE_PROTOCOL_REJECTED = 221
 
         var SEND_ARRAY_INIT = 100
         var WAIT_FOR_ARRAY = 101
@@ -27,6 +29,7 @@ class Constants{
         val TOAST = "toast"
         val RECEIVED = "received"
         val ARRAY_SEPARATOR = "\n"
+        val PACKET_SEPARATOR = "|"
 
         var USER_ROLE_NONE = 10
         var USER_ROLE_PROVER = 11
@@ -36,7 +39,7 @@ class Constants{
         var PROTOCOL_INIT = 200
         var PROTOCOL_END = 300
 
-        var PROVER_INTRODUCTION = 201
+        var PROVER_AWAIT_INTRODUCTION_CONFIRMATION = 201
         var PROVER_AWAIT_CHALLENGE = 204
         var PROVER_REG_INFO = 205
         var PROVER_GEN_X = 207
@@ -45,7 +48,7 @@ class Constants{
 
         var VERIFIER_AWAIT_INTRO = 202
         var VERIFIER_CHALLENGE = 203
-        var VERIFIER_AWAIT_REG_INFO = 206
+        var VERIFIER_AWAIT_CONFIRM = 206
         var VERIFIER_AWAIT_X = 208
         var VERIFIER_AWAIT_Y = 210
 
