@@ -1,11 +1,12 @@
 package com.auth
 
+import android.content.Context
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import com.auth.SecureStorage
 import kotlin.math.abs
 
-class ffsKeyGenerator(val secParam : Int)
+class ffsKeyGenerator(val secParam : Int, val context : Context)
 {
     private val p : Long = 1009
     private val q : Long = 1019
@@ -38,7 +39,7 @@ class ffsKeyGenerator(val secParam : Int)
 
     fun genAndStoreKeys()
     {
-        val secureStorage = SecureStorage()
+        val secureStorage = SecureStorage(context)
 
         val (sk,pk) = generateKeyPair()
         secureStorage.storePublicKey(pk)

@@ -27,7 +27,10 @@ import android.view.View
 import android.widget.*
 import java.lang.StringBuilder
 import Prover
+import Introduction
 import Verifier
+import com.auth.ffsKeyGenerator
+import com.auth.introductionGenerator
 import java.io.IOException
 import kotlin.random.Random
 
@@ -68,8 +71,8 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         private var protocolState: Int = Constants.PROTOCOL_END
         private val securityParam = 5
         private var name: String = ""
-//        private var prover = Prover(securityParam)
-//        private var verifier = Verifier(securityParam)
+        private lateinit var prover : Prover
+        private lateinit var verifier : Verifier
 //        private lateinit var receivedList: List<Int>
 
         private var roundsNumber : Int = 0
@@ -79,12 +82,12 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
             this.mActivity = mainActivity
             this.userRole = userRole
             if(userRole.equals(Constants.USER_ROLE_VERIFIER)) {
-
                 roundsNumber = Random.nextInt(1,10) // Generate numbers of rounds for the protocol
                 mActivity.sendInt(roundsNumber)
 //                nextState("")
                 this.protocolState = Constants.VERIFIER_AWAIT_INTRO
             } else if(userRole.equals(Constants.USER_ROLE_PROVER)) {
+                prover = Prover(securityParam, mActivity)
                 mActivity.sendInt(Constants.PROTOCOL_INIT)
                 this.protocolState = Constants.PROTOCOL_INIT
             }
@@ -109,19 +112,19 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                 Constants.PROTOCOL_INIT -> {
                     Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
                     roundsNumber = stageMessage.toInt()
-//                    val (introduction, signature) = prover.getIntroduction()
-//                    val publicKeyString = listToString(introduction.publicKey)
+                    val (introduction, sign) = prover.getIntroduction()
+                    val (pkEncoded, signature) = introductionGenerator(mActivity)
+                    //val (introduction, signature) = prover.getIntroduction()
 
 
-                    name = "hello world"
-                    val publicKey = List<Long>(5) {Random.nextLong(1000,101010101)}
-                    val publicKeyString = listLongToString(publicKey)
-                    var signature = "abcdef".toByteArray()
-
+                    name = introduction.name
+                    Log.i("SIGNATURE_SIZE",signature.size.toString())
                     val stringBuilder = StringBuilder()
                     stringBuilder.append(name).append(Constants.PACKET_SEPARATOR)
-                    stringBuilder.append(publicKeyString).append(Constants.PACKET_SEPARATOR)
-                    stringBuilder.append(signature.toString())
+                    stringBuilder.append(listLongToString(introduction.publicKey)).append(Constants.PACKET_SEPARATOR)
+                    stringBuilder.append(byteArrayToString(signature)).append(Constants.PACKET_SEPARATOR)
+                    stringBuilder.append(byteArrayToString(pkEncoded)).append(Constants.PACKET_SEPARATOR)
+                    stringBuilder.append("test")
 
                     mActivity.sendMessage(stringBuilder.toString())
                     protocolState = Constants.PROVER_AWAIT_INTRODUCTION_CONFIRMATION
@@ -137,23 +140,21 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     //stageMessage to List<Int>
                     val recChallenge = stringToListInt(stageMessage)
                     Log.i("RECEIVED_CHALLENGE",recChallenge.get(0).toString())
-                    //prover.receivedChallenge = recChallenge
+                    prover.receivedChallenge = recChallenge
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.PROVER_GEN_X
                 }
 
                 Constants.PROVER_GEN_X -> {
                     //gen x and send to verifier
-                    // val x = prover.genX()
-                    val x = Random.nextLong(0,100000)
+                     val x = prover.genX()
                     mActivity.sendMessage(x.toString())
                     protocolState = Constants.PROVER_CALC_Y
                 }
 
                 Constants.PROVER_CALC_Y -> {
                     //calcY and send to verifier
-                    val y = Random.nextLong(0,100000)
-                    //val y = prover.calcY()
+                    val y = prover.calcY()
                     mActivity.sendMessage(y.toString())
                     protocolState = Constants.PROVER_AWAIT_VERIFICATION
                 }
@@ -196,21 +197,28 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     val unpackedMessage = stageMessage.split(Constants.PACKET_SEPARATOR)
                     name = unpackedMessage.get(0)
                     val publicKey = stringToListLong(unpackedMessage.get(1))
-                    val introductionSignature = unpackedMessage.get(2).toByteArray()
+                    val introductionSignature = stringToByteArray(unpackedMessage.get(2))
+
+                    val pkEncoded = stringToByteArray(unpackedMessage.get(3))
+                    mActivity.openFileOutput("CAPublicKey", Context.MODE_PRIVATE).use {it -> it.write(pkEncoded)}
+
+                    mActivity.openFileOutput("introduction.sign", Context.MODE_PRIVATE).use { it.write(introductionSignature)}
+                    Log.i("Intro Signature", introductionSignature.toString())
 
                     Log.i("VERIFIER_NAME",name)
                     Log.i("VERIFIER_PUBLIC_KEY",publicKey.size.toString())
-                    Log.i("PROVER_SIGNATURE",introductionSignature.toString())
+                    //Log.i("PROVER_SIGNATURE",introductionSignature.toString())
+                    introductionSignature.map { i -> Log.i("RECEIVED_SIGN", i.toString())}
 
-//                    verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
+                    verifier = Verifier(securityParam, mActivity)
+                    verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_CHALLENGE
                 }
 
                 Constants.VERIFIER_CHALLENGE -> {
                     //verifier gen challlenge
-                    val challenge = List<Int>(5){Random.nextInt(1,100)}
-//                    val challenge = verifier.genChallenge()
+                    val challenge = verifier.genChallenge()
                     var stringChallenge = listIntToString(challenge)
                     mActivity.sendMessage(stringChallenge)
                     protocolState = Constants.VERIFIER_AWAIT_CONFIRM
@@ -225,7 +233,7 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                     //verifier fetch x
 
                     val x = stageMessage.toLong()
-//                    verifier.receivedX = X
+                    verifier.receivedX = x
                     mActivity.sendMessage("RECEIVED")
                     protocolState = Constants.VERIFIER_AWAIT_Y
                 }
@@ -233,9 +241,9 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                 Constants.VERIFIER_AWAIT_Y -> {
                     //verifier fetch y and verify
 
-                    val y = stageMessage.toLong()
 
-                    if(roundCounter%2 == 0) {
+                    verifier.receivedY = stageMessage.toLong()
+                    if(verifier.verify()){
                         mActivity.sendMessage("APPROVED_${roundCounter}")
                     } else {
                         mActivity.sendMessage("REJECTED_${roundCounter}")
@@ -249,8 +257,6 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                         mActivity.chatFragment.communicate(Message("NAME: ${name}",milliSecondsTime,Constants.MESSAGE_TYPE_SENT))
                         protocolState = Constants.PROTOCOL_END
                     }
-//                    verifier.receivedY = Y
-//                    if(!verifier.verify())
 //                        mActivity.sendMessage("REJECTED")
                     //else if (ctr == roundsNumber)
                     //sendMessage("Accepted")
@@ -297,6 +303,27 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
             return stringBuilder.toString()
         }
 
+        fun byteArrayToString(byteArray: ByteArray): String {
+            val stringBuilder = StringBuilder()
+            for(i in 0..byteArray.size-2) {
+                stringBuilder.append(byteArray.get(i).toInt().toString()).append(":")
+            }
+            stringBuilder.append(byteArray.last().toInt().toString())
+
+            return stringBuilder.toString()
+        }
+
+        fun stringToByteArray(string: String) : ByteArray {
+            val byteString = string.split(":")
+            val byteArray = ByteArray(byteString.size)
+            for(i in 0..byteString.size-1) {
+                byteArray.set(i,byteString.get(i).toInt().toByte())
+            }
+            return byteArray
+        }
+
+
+
     }
 
 
@@ -306,6 +333,8 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        //ffsKeyGenerator(5, this).genAndStoreKeys()
 
         progressBar = findViewById(R.id.progressBar)
         recyclerView = findViewById(R.id.recyclerView)

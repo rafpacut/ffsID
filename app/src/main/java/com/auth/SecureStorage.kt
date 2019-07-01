@@ -1,34 +1,39 @@
 package com.auth
 
+import android.content.Context
 import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProtection
+import android.util.Log
 import java.io.*
 import java.lang.Exception
+import Introduction
 import java.security.KeyStore
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 import java.io.FileOutputStream
 
-
-
-class SecureStorage {
+class SecureStorage(val context : Context) {
     fun storeSecretKey(secretKey : List<Long>)
     {
-        val secretKeyByteArray = longsToBytes(secretKey)
-        loadKeyStore()
-        val secretKeyObj = SecretKeySpec(secretKeyByteArray, "ffs")
-        val pkEntry = KeyStore.SecretKeyEntry(secretKeyObj)
-        val protectionParam = KeyStore.PasswordProtection(ksPasswd)
-        keyStore.setEntry(secretKeyAlias, pkEntry, protectionParam)
-        saveKeyStore()
+        try {
+            val fOutStream = context.openFileOutput("proverSecretKey", Context.MODE_PRIVATE)
+            val byteSecretKey = longsToBytes(secretKey)
+            fOutStream.write(byteSecretKey)
+            fOutStream.close()
+        }catch(e : Exception)
+        {
+            println("Could not store prover's secret key")
+            throw e
+        }
     }
 
     fun storePublicKey(publicKey : List<Long>)
     {
         try {
-            var fHandle = File("${basePath}/proverPublicKey")
-            fHandle.writeText("")
-            publicKey.map { i -> fHandle.appendText("${i.toString()}\n") }
+            val fOutStream = context.openFileOutput("proverPublicKey", Context.MODE_PRIVATE)
+            val bytePublicKey = longsToBytes(publicKey)
+            fOutStream.write(bytePublicKey)
+            fOutStream.close()
         }
         catch(e : Exception)
         {
@@ -47,8 +52,10 @@ class SecureStorage {
     private fun retrievePublicKey() : List<Long>
     {
         try {
-            val stringPk : List<String> = File("${basePath}/proverPublicKey").readLines()
-            return List<Long>(stringPk.size, {i -> stringPk[i].toLong()})
+            val fHandle = context.getFileStreamPath("proverPublicKey")
+            val bytesPk = fHandle.readBytes()
+            val pk = bytesToLongs(bytesPk)
+            return pk
         }
         catch(e : Exception)
         {
@@ -57,57 +64,31 @@ class SecureStorage {
         }
     }
 
-    fun retrieveSecretKey() : List<Long>
-    {
-        loadKeyStore()
-        val protectionParam = KeyStore.PasswordProtection(ksPasswd)
-        val entry = keyStore.getEntry(secretKeyAlias, protectionParam)
-        val skEntry : KeyStore.SecretKeyEntry = entry as KeyStore.SecretKeyEntry
-
-        return bytesToLongs(skEntry.secretKey.encoded)
-    }
-
-    private fun loadKeyStore()
-    {
-        if(File(keyStorePath).exists()) {
-            try {
-                if (!isKeyStoreLoaded) {
-                    FileInputStream(keyStorePath).use { fis -> keyStore.load(fis, ksPasswd) }
-                    isKeyStoreLoaded = true
-                }
-            } catch (e: IOException) {
-                println("IO Error loading keyStore")
-                throw e
-            }
-        }
-        else
-        {
-            println("Creating empty keystore")
-            createKeyStore()
-        }
-    }
-
-    private fun createKeyStore()
-    {
-        keyStore.load(null)
-    }
-
-    private fun saveKeyStore()
+    fun retrieveIntroSign() : ByteArray
     {
         try{
-            FileOutputStream(keyStorePath).use { fos -> keyStore.store(fos, ksPasswd) }
-        }catch(e: Exception)
+            val fHandle = context.getFileStreamPath("introduction.sign")
+            return fHandle.readBytes()
+        }
+        catch(e : Exception)
         {
-            println("Error saving key store")
+            println("Could not read prover's introduction signature")
             throw e
         }
     }
 
-    private val ksPasswd = "password".toCharArray()
-    private val keyStoreType = "jceks"
-    private var keyStore = KeyStore.getInstance(keyStoreType)
-    var isKeyStoreLoaded = false
-    val secretKeyAlias = "alias"
-    private val basePath = "/home/rafal/college/Crypto/ffsID"
-    val keyStorePath = "${basePath}/keyStore.${keyStoreType}"
+    fun retrieveSecretKey() : List<Long>
+    {
+        try {
+            val fHandle = context.getFileStreamPath("proverSecretKey")
+            val bytesPk = fHandle.readBytes()
+            val pk = bytesToLongs(bytesPk)
+            return pk
+        }
+        catch(e : Exception)
+        {
+            println("Could not read prover's secret key")
+            throw e
+        }
+    }
 }

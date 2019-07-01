@@ -12,6 +12,7 @@ import javax.crypto.SecretKey
 import android.R.attr.password
 import java.io.FileInputStream
 import android.R.attr.password
+import android.util.Log
 import com.auth.*
 import java.security.MessageDigest
 import javax.security.cert.Certificate
@@ -25,10 +26,11 @@ data class Introduction(val name : String, val publicKey : List<Long>)
     }
 }
 
-class Prover(val secParam : Int)
+class Prover(val secParam : Int, val context : Context)
 {
     init {
         loadKeys()
+        loadIntroSignature()
     }
 
     private val p : Long= 1009
@@ -60,11 +62,18 @@ class Prover(val secParam : Int)
         }, N)
     }
 
+    private fun loadIntroSignature()
+    {
+        val secureStorage = SecureStorage(context)
+        signedIntroduction = secureStorage.retrieveIntroSign()
+        signedIntroduction.map {i -> Log.i("Loaded Sign", i.toString())}
+    }
+
     private fun loadKeys()
     {
         if(! ::secretKey.isInitialized)
         {
-            val secureStorage = SecureStorage()
+            val secureStorage = SecureStorage(context)
             val (sk, pk) = secureStorage.retrieveKeys()
             secretKey = sk
             publicKey = pk
@@ -85,6 +94,6 @@ class Prover(val secParam : Int)
     lateinit var receivedChallenge : List<Int>
     lateinit var publicKey : List<Long>
     lateinit var secretKey : List<Long>
-    private val basePath = "/home/rafal/college/Crypto/ffsID"
-    var signedIntroduction = File(basePath+"/introduction.sign").readBytes()
+    private val basePath = "/Android/com.ffsID"
+    private lateinit var signedIntroduction : ByteArray
 }

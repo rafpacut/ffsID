@@ -5,35 +5,35 @@ import org.junit.Assert.*
 
 import Verifier
 import Prover
+import android.content.Context
 
 import com.auth.CAWrapper
 import com.auth.ffsKeyGenerator
+import com.auth.longsToBytes
 import java.io.File
 
-class KeyIntroGenerator
+class KeyIntroGeneratorUT
 {
-    @Test
-    fun introductionGenerator()
-    {
-        val ca = CAWrapper()
-        File("/home/rafal/college/Crypto/ffsID/CAPublicKey.key").writeBytes(ca.publicKey.encoded)
+    //@Test
+    //fun introductionGenerator()
+    //{
+    //    val ca = CAWrapper()
 
-        val prover = Prover(5)
-        val verifier = Verifier(5)
-        val (intro, _) = prover.getIntroduction()
-        val signedIntroduction = ca.sign(intro.getHash())
+    //    val caFOutStream = context.openFileOutput("CAPublicKey", Context.MODE_PRIVATE)
+    //    caFOutStream.write(ca.publicKey.encoded)
+    //    caFOutStream.close()
 
-        File("/home/rafal/college/Crypto/ffsID/introduction.sign").writeBytes(signedIntroduction)
+    //    val prover = Prover(5, context)
+    //    val verifier = Verifier(5, context)
+    //    val (intro, _) = prover.getIntroduction()
+    //    val signedIntroduction = ca.sign(intro.getHash())
 
-        assertEquals(verifier.caPublicKey, ca.publicKey)
-        assertTrue(verifier.verifyIntroduction(intro.getHash(), signedIntroduction))
-    }
+    //    assertEquals(verifier.caPublicKey, ca.publicKey)
+    //    assertTrue(verifier.verifyIntroduction(intro.getHash(), signedIntroduction))
+    //}
 
-    @Test
     fun generateProverKeys()
     {
-        val secParam = 5
-        val gen = ffsKeyGenerator(secParam)
-        gen.genAndStoreKeys()
+        //ffsKeyGenerator(5).genAndStoreKeys()
     }
 }

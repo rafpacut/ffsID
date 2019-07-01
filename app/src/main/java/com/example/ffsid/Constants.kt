@@ -28,7 +28,7 @@ class Constants{
         val DEVICE_NAME = "device_name"
         val TOAST = "toast"
         val RECEIVED = "received"
-        val ARRAY_SEPARATOR = "\n"
+        val ARRAY_SEPARATOR = ";"
         val PACKET_SEPARATOR = "|"
 
         var USER_ROLE_NONE = 10

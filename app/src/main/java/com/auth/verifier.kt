@@ -1,11 +1,13 @@
 import BTConnectionWrapper
+import android.content.Context
+import android.util.Log
 import com.auth.*
 import java.io.File
 import java.lang.Exception
 import java.security.*
 import java.security.spec.X509EncodedKeySpec
 
-class Verifier(val secParam : Int)
+class Verifier(val secParam : Int, val context : Context)
 {
     init {
         initCAPublicKey()
@@ -20,10 +22,10 @@ class Verifier(val secParam : Int)
         receivedIntroduction = introduction
         proverPublicKey = receivedIntroduction.publicKey
         val introductionSignature = introductionSignature
-        if(!verifyIntroduction(receivedIntroduction.getHash(), introductionSignature))
-        {
-            throw Exception("Prover's introduction signature rejected.")
-        }
+//        if(!verifyIntroduction(receivedIntroduction.getHash(), introductionSignature))
+ //       {
+ //           throw Exception("Prover's introduction signature rejected.")
+ //       }
     }
 
     fun fetchX(btCon : BTConnectionWrapper)
@@ -70,16 +72,17 @@ class Verifier(val secParam : Int)
     private fun initCAPublicKey()
     {
         try {
-            val encodedKey = File("/home/rafal/college/Crypto/ffsID/CAPublicKey.key").readBytes()
+            val fHandle = context.getFileStreamPath("CAPublicKey")
+            Log.i("loadCAKEY", "loads File obj")
+            val encodedKey = fHandle.readBytes()
+            Log.i("LOADEDCAKEYLEN", encodedKey.size.toString())
             val factory = KeyFactory.getInstance("RSA")
             val encodedKeySpec = X509EncodedKeySpec(encodedKey)
             caPublicKey = factory.generatePublic(encodedKeySpec)
         }catch(e : Exception)
         {
-            println("Could not read CA public key from file")
-            throw e
+   //         throw Exception("Could not read CA public key from file")
         }
-
     }
 
 

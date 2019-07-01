@@ -1,9 +1,13 @@
 package com.auth
 
+import android.content.Context
 import kotlin.math.abs
 import java.nio.ByteBuffer
 import java.nio.LongBuffer
 
+import Prover
+import Verifier
+import android.util.Log
 
 fun fastPower(b : Long, e : Int) : Long
 {
@@ -74,4 +78,32 @@ fun bytesToLongs(x : ByteArray) : List<Long>
    return List<Long>(x.size/8, {i -> buffer.getLong()})
 }
 
+fun introductionGenerator(context : Context) : Pair<ByteArray, ByteArray>
+{
+    val ca = CAWrapper()
+
+    val caFOutStream = context.openFileOutput("CAPublicKey", Context.MODE_PRIVATE)
+    caFOutStream.write(ca.publicKey.encoded)
+    Log.i("CAPUBLICKEYLEN", ca.publicKey.encoded.size.toString())
+    caFOutStream.close()
+
+    val prover = Prover(5, context)
+    val verifier = Verifier(5, context)
+    val (intro, _) = prover.getIntroduction()
+    val signedIntroduction = ca.sign(intro.getHash())
+
+    if(verifier.verifyIntroduction(intro.getHash(), signedIntroduction))
+        {
+            Log.i("IntroVerficationGen","Introduction verification successful")
+        }
+        else
+        {
+            Log.i("IntroVerficationGen","Introduction verification failed")
+        }
+//    val fOutStream = context.openFileOutput("introduction.sign", Context.MODE_PRIVATE)
+//    fOutStream.write(signedIntroduction)
+//    fOutStream.close()
+
+    return Pair(ca.publicKey.encoded, signedIntroduction)
+}
 

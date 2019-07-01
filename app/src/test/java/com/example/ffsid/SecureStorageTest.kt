@@ -7,20 +7,20 @@ import org.junit.Assert.*
 import com.auth.SecureStorage
 
 class  SecureStorageUT{
-    @Test
-    fun storesKeysCorrectly()
-    {
-        val ss = SecureStorage()
-        val (sk, pk) = ss.retrieveKeys()
+  //  @Test
+  //  fun storesKeysCorrectly()
+  //  {
+  //      val ss = SecureStorage()
+  //      val (sk, pk) = ss.retrieveKeys()
 
-        ss.storePublicKey(pk)
-        ss.storeSecretKey(sk)
+  //      ss.storePublicKey(pk)
+  //      ss.storeSecretKey(sk)
 
-        val (skStored, pkStored) = ss.retrieveKeys()
+  //      val (skStored, pkStored) = ss.retrieveKeys()
 
-        assertEquals("secret key storage fails", sk, skStored)
-        assertEquals("public key storage fails", pk, pkStored)
-    }
+  //      assertEquals("secret key storage fails", sk, skStored)
+  //      assertEquals("public key storage fails", pk, pkStored)
+  //  }
 }
 
 
