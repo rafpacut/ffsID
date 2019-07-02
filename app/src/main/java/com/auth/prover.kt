@@ -94,6 +94,5 @@ class Prover(val secParam : Int, val context : Context)
     lateinit var receivedChallenge : List<Int>
     lateinit var publicKey : List<Long>
     lateinit var secretKey : List<Long>
-    private val basePath = "/Android/com.ffsID"
     private lateinit var signedIntroduction : ByteArray
 }

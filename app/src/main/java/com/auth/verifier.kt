@@ -22,10 +22,10 @@ class Verifier(val secParam : Int, val context : Context)
         receivedIntroduction = introduction
         proverPublicKey = receivedIntroduction.publicKey
         val introductionSignature = introductionSignature
-//        if(!verifyIntroduction(receivedIntroduction.getHash(), introductionSignature))
- //       {
- //           throw Exception("Prover's introduction signature rejected.")
- //       }
+        if(!verifyIntroduction(receivedIntroduction.getHash(), introductionSignature))
+        {
+            throw Exception("Prover's introduction signature rejected.")
+        }
     }
 
     fun fetchX(btCon : BTConnectionWrapper)
@@ -72,16 +72,14 @@ class Verifier(val secParam : Int, val context : Context)
     private fun initCAPublicKey()
     {
         try {
-            val fHandle = context.getFileStreamPath("CAPublicKey")
-            Log.i("loadCAKEY", "loads File obj")
+            val fHandle = context.openFileInput("CAPublicKey")
             val encodedKey = fHandle.readBytes()
-            Log.i("LOADEDCAKEYLEN", encodedKey.size.toString())
             val factory = KeyFactory.getInstance("RSA")
             val encodedKeySpec = X509EncodedKeySpec(encodedKey)
             caPublicKey = factory.generatePublic(encodedKeySpec)
         }catch(e : Exception)
         {
-   //         throw Exception("Could not read CA public key from file")
+            throw Exception("Could not read CA public key from file ${e.message}")
         }
     }
 

@@ -29,10 +29,12 @@ import java.lang.StringBuilder
 import Prover
 import Introduction
 import Verifier
-import com.auth.ffsKeyGenerator
-import com.auth.introductionGenerator
+import com.auth.*
 import java.io.IOException
+import java.util.*
+import kotlin.collections.HashSet
 import kotlin.random.Random
+import android.util.Base64
 
 
 class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickListener, ChatFragment.CommunicationListener {
@@ -112,19 +114,14 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
                 Constants.PROTOCOL_INIT -> {
                     Log.i("NEXT_STATE","STATE_AFTER_PROTOCOL_INIT")
                     roundsNumber = stageMessage.toInt()
-                    val (introduction, sign) = prover.getIntroduction()
-                    val (pkEncoded, signature) = introductionGenerator(mActivity)
-                    //val (introduction, signature) = prover.getIntroduction()
+                    val (introduction, signature) = prover.getIntroduction()
 
 
                     name = introduction.name
-                    Log.i("SIGNATURE_SIZE",signature.size.toString())
                     val stringBuilder = StringBuilder()
                     stringBuilder.append(name).append(Constants.PACKET_SEPARATOR)
                     stringBuilder.append(listLongToString(introduction.publicKey)).append(Constants.PACKET_SEPARATOR)
                     stringBuilder.append(byteArrayToString(signature)).append(Constants.PACKET_SEPARATOR)
-                    stringBuilder.append(byteArrayToString(pkEncoded)).append(Constants.PACKET_SEPARATOR)
-                    stringBuilder.append("test")
 
                     mActivity.sendMessage(stringBuilder.toString())
                     protocolState = Constants.PROVER_AWAIT_INTRODUCTION_CONFIRMATION
@@ -192,23 +189,16 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
 
                 Constants.VERIFIER_AWAIT_INTRO -> {
                     Log.i("NEXT_STATE","GET_INTRO")
-                    //message to name : String, publicKey : List<Long>
-                    //introductionSignature : ByteArray
+                    //unpack stuff
                     val unpackedMessage = stageMessage.split(Constants.PACKET_SEPARATOR)
                     name = unpackedMessage.get(0)
                     val publicKey = stringToListLong(unpackedMessage.get(1))
                     val introductionSignature = stringToByteArray(unpackedMessage.get(2))
 
-                    val pkEncoded = stringToByteArray(unpackedMessage.get(3))
-                    mActivity.openFileOutput("CAPublicKey", Context.MODE_PRIVATE).use {it -> it.write(pkEncoded)}
-
-                    mActivity.openFileOutput("introduction.sign", Context.MODE_PRIVATE).use { it.write(introductionSignature)}
-                    Log.i("Intro Signature", introductionSignature.toString())
 
                     Log.i("VERIFIER_NAME",name)
-                    Log.i("VERIFIER_PUBLIC_KEY",publicKey.size.toString())
-                    //Log.i("PROVER_SIGNATURE",introductionSignature.toString())
-                    introductionSignature.map { i -> Log.i("RECEIVED_SIGN", i.toString())}
+                    Log.i("VERIFIER_PUBLIC_KEY",publicKey.toString())
+                    Log.i("PROVER_SIGNATURE",introductionSignature.toString())
 
                     verifier = Verifier(securityParam, mActivity)
                     verifier.fetchIntroduction(Introduction(name, publicKey), introductionSignature)
@@ -335,6 +325,10 @@ class MainActivity : AppCompatActivity(), DevicesRecyclerViewAdapter.ItemClickLi
         setContentView(R.layout.activity_main)
 
         //ffsKeyGenerator(5, this).genAndStoreKeys()
+        //this.openFileInput("proverPublicKey").use{ Log.i("prover's Public Key", bytesToLongs(it.readBytes()).toString())}
+        //this.openFileInput("proverSecretKey").use{ Log.i("prover's Secret Key", bytesToLongs(it.readBytes()).toString())}
+        //this.openFileInput("CAPublicKey").use{ it.readBytes().map { i -> Log.i("read CA public Key", i.toString()) }}
+        //this.openFileInput("introduction.sign").use{ it.readBytes().map { i -> Log.i("read signature", i.toString()) }}
 
         progressBar = findViewById(R.id.progressBar)
         recyclerView = findViewById(R.id.recyclerView)
