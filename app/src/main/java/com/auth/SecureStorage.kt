@@ -12,6 +12,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 import java.io.FileOutputStream
 
+//Secure only in name.
 class SecureStorage(val context : Context) {
     fun storeSecretKey(secretKey : List<Long>)
     {
